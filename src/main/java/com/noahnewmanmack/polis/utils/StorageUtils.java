@@ -8,6 +8,7 @@ import com.noahnewmanmack.polis.actor.character.ICharacter;
 import com.noahnewmanmack.polis.actor.faction.Faction;
 import com.noahnewmanmack.polis.actor.faction.IFaction;
 import com.noahnewmanmack.polis.enums.Autonomy;
+import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
@@ -45,10 +46,9 @@ public class StorageUtils {
    * },{},{}]}
    */
 
-  public StorageUtils(Polis polis) {
-    activePath = polis.getDataFolder().getAbsolutePath();
+  public StorageUtils(File file) {
     try {
-      contents = new String(Files.readAllBytes(Paths.get(activePath, "/actors.json")));
+      contents = new String(Files.readAllBytes(file.toPath()));
     } catch (IOException e) { e.printStackTrace(); }
   }
 
@@ -86,7 +86,7 @@ public class StorageUtils {
 
   public static void build() {
 
-    // build 
+    // build
 
 
   }
