@@ -1,0 +1,6 @@
+name: Polis
+version: '${project.version}'
+main: com.noahnewmanmack.polis.Polis
+api-version: 1.18
+authors: [ NoahNewmanMack ]
+description: A Factions Plugin
