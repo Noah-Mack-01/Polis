@@ -42,4 +42,7 @@ public interface ICharacter extends IActor {
    */
   int addToPocket(int amount) throws IllegalArgumentException;
 
+
+
+
 }

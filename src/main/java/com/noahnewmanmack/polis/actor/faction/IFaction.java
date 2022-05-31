@@ -4,6 +4,8 @@ import com.noahnewmanmack.polis.actor.AbstractActor;
 import com.noahnewmanmack.polis.actor.IActor;
 import com.noahnewmanmack.polis.enums.Autonomy;
 import com.noahnewmanmack.polis.enums.DiplomaticRelationship;
+import java.util.Collection;
+import java.util.UUID;
 
 public interface IFaction extends IActor {
 
@@ -22,6 +24,7 @@ public interface IFaction extends IActor {
    * @return the prior autonomy value being overwritten, or null.
    */
   IFaction insertSubordinate(IActor subordinate, Autonomy autonomy);
+
 
   /**
    * Extends HashMap functionality for the list of IActor subordinates.
@@ -57,6 +60,6 @@ public interface IFaction extends IActor {
 
   void declareWar(IFaction enemy);
 
-
+  Collection<UUID> getSubordinateIDs();
 
 }

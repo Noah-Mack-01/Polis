@@ -26,9 +26,8 @@ import org.json.JSONObject;
  */
 public class StorageUtils {
 
-  private static String activePath;
   private static ArrayList<IFaction> factionList = new ArrayList<>();
-  private static ArrayList<ICharacter> characters = new ArrayList<>();
+  private static ArrayList<ICharacter> characters = new ArrayList<ICharacter>();
   private static Map<UUID, IActor> usedIDs = new TreeMap<>();
   private static String contents;
 
@@ -46,7 +45,7 @@ public class StorageUtils {
    * },{},{}]}
    */
 
-  public StorageUtils(File file) {
+  public static void loadFileFromPlugin(File file) {
     try {
       contents = new String(Files.readAllBytes(file.toPath()));
     } catch (IOException e) { e.printStackTrace(); }
@@ -84,11 +83,36 @@ public class StorageUtils {
     }
   }
 
-  public static void build() {
+  public static JSONObject build() {
 
-    // build
+    JSONArray charactersJSON = new JSONArray();
+    for (ICharacter character : characters) {
+      JSONObject input = new JSONObject();
+      input.put("UUID", character.getID());
+      input.put("Name", character.getName());
+      input.put("Desc", character.getDesc());
+      input.put("Treasury", character.receive(0));
+      input.put("Balance", character.addToPocket(0));
+      charactersJSON.put(input);
+    }
+    // for each character, first create
 
+    JSONArray factionsJSON = new JSONArray();
+    for (IFaction faction : factionList) {
+      JSONObject input = new JSONObject();
+      input.put("UUID", faction.getID());
+      input.put("Name", faction.getName());
+      input.put("Desc", faction.getDesc());
+      input.put("Treasury", faction.receive(0));
+      JSONArray subs = new JSONArray(faction.getSubordinateIDs());
+      input.put("Subodinates", subs);
+      factionsJSON.put(input);
+    }
 
+    JSONObject output = new JSONObject();
+    output.put("Factions", factionsJSON);
+    output.put("Characters", charactersJSON);
+    return output;
   }
 
   public static IFaction createFaction(UUID uuid, String name,
