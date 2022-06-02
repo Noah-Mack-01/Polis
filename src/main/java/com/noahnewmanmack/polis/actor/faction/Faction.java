@@ -8,10 +8,12 @@ import com.noahnewmanmack.polis.enums.DiplomaticRelationship;
 
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.UUID;
 
 
@@ -114,4 +116,15 @@ public class Faction extends AbstractActor implements IFaction {
     }
     return this.lord;
   }
+
+  @Override
+  public Collection<UUID> getSubordinateIDs() {
+    Collection<UUID> output = new ArrayList<>();
+    for (IActor actor : subordinates.keySet()) {
+      output.add(actor.getID());
+    }
+    return output;
+  }
+
+
 }

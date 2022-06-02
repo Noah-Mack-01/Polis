@@ -58,7 +58,7 @@ public interface IActor {
   boolean isPeer(IActor actor);
 
   UUID getID();
-  String getName() throws IllegalArgumentException;
-  String getDesc() throws IllegalArgumentException;
+  String getName();
+  String getDesc();
 
 }

@@ -1,212 +1,168 @@
 package com.noahnewmanmack.polis.utils;
 
-
-import com.noahnewmanmack.polis.Polis;
-import com.noahnewmanmack.polis.actor.IActor;
 import com.noahnewmanmack.polis.actor.character.Character;
 import com.noahnewmanmack.polis.actor.character.ICharacter;
 import com.noahnewmanmack.polis.actor.faction.Faction;
 import com.noahnewmanmack.polis.actor.faction.IFaction;
-import com.noahnewmanmack.polis.enums.Autonomy;
+
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.IOException;
+
 import java.nio.file.Files;
 import java.nio.file.Paths;
+
 import java.util.ArrayList;
-import java.util.Map;
-import java.util.TreeMap;
+import java.util.List;
 import java.util.UUID;
+
 import org.json.JSONArray;
+import org.json.JSONException;
 import org.json.JSONObject;
 
-/**
- * <b></b>CRUD management for the Faction & Characters of a Server. <br>
- * <b>Method:</b> createFaction - builds a faction using the contructor by generating a compliant uuid. <br>
- * <b></b>
- */
+
 public class StorageUtils {
 
-  private static ArrayList<IFaction> factionList = new ArrayList<>();
-  private static ArrayList<ICharacter> characters = new ArrayList<ICharacter>();
-  private static Map<UUID, IActor> usedIDs = new TreeMap<>();
-  private static String contents;
+  private static List<IFaction> factionList;
+  private static List<ICharacter> charactersList;
+  private static JSONObject storageJSON;
 
-
-  /*
-   * JSON STRUCTURE:
-   * {
-   * "Factions" : [{
-   *    "UUID" : 10203, "Name" : "XXX", "Desc" : "Blah", "Lord" : 10222,
-   *    "Subordinates":[{"UUID": 1022, "Autonomy":"H"}, {}, {}], "Balance" : 555
-   *  },{},{}],
-   * Characters : [{
-   *    "UUID" : 10203, "Name" : "XXX", "Desc" : "Blah", "Lord" : 10203,
-   *    "Balance" : 40,
-   * },{},{}]}
-   */
-
-  public static void loadFileFromPlugin(File file) {
-    try {
-      contents = new String(Files.readAllBytes(file.toPath()));
-    } catch (IOException e) { e.printStackTrace(); }
-  }
-
-  public static void load() {
-    // Total json as loaded on startup.
-    JSONObject gross_set = new JSONObject(contents);
-
-    // from this, we'd like to get ever unique ID we can and make it a registered actor.
-    // Let's start with getting our factions.
-    JSONArray factions = gross_set.getJSONArray("Factions");
-
-    JSONArray characters = gross_set.getJSONArray("Characters");
-    for (int i = 0; i < characters.length(); i++) {
-      JSONObject character = characters.getJSONObject(i);
-      createCharacter(UUID.fromString(character.getString("UUID")),
-          character.getString("Name"), character.getString("Desc"),
-          character.getDouble("Balance"), character.getDouble("Treasury"));
-    }
-
-    for (int i = 0; i < factions.length(); i++) {
-      JSONObject faction = factions.getJSONObject(i);
-      createFaction(
-          UUID.fromString(faction.getString("UUID")),
-          faction.getString("Name"), faction.getString("Desc"),
-          faction.getDouble("Treasury"));
-    }
-
-    for (int i = 0; i < factions.length(); i++) {
-      JSONObject faction = factions.getJSONObject(i);
-      UUID uuid = UUID.fromString(faction.getString("UUID")); // Faction UUID
-      JSONArray subs = faction.getJSONArray("Subordinates"); // subordinate UUIDs
-      populateSubordinates(uuid, subs);
-    }
-  }
-
-  public static JSONObject build() {
-
-    JSONArray charactersJSON = new JSONArray();
-    for (ICharacter character : characters) {
-      JSONObject input = new JSONObject();
-      input.put("UUID", character.getID());
-      input.put("Name", character.getName());
-      input.put("Desc", character.getDesc());
-      input.put("Treasury", character.receive(0));
-      input.put("Balance", character.addToPocket(0));
-      charactersJSON.put(input);
-    }
-    // for each character, first create
-
-    JSONArray factionsJSON = new JSONArray();
-    for (IFaction faction : factionList) {
-      JSONObject input = new JSONObject();
-      input.put("UUID", faction.getID());
-      input.put("Name", faction.getName());
-      input.put("Desc", faction.getDesc());
-      input.put("Treasury", faction.receive(0));
-      JSONArray subs = new JSONArray(faction.getSubordinateIDs());
-      input.put("Subodinates", subs);
-      factionsJSON.put(input);
-    }
-
-    JSONObject output = new JSONObject();
-    output.put("Factions", factionsJSON);
-    output.put("Characters", charactersJSON);
-    return output;
-  }
-
-  public static IFaction createFaction(UUID uuid, String name,
-      String description, double treasury) {
-    IFaction f = new Faction(uuid, name, description);
-    f.receive(treasury);
-    factionList.add(f);
-    usedIDs.put(uuid,f);
-    return f;
-  }
-
-  public static ICharacter createCharacter(UUID uuid, String name,
-      String description, double balance, double treasury) {
-    ICharacter c = new Character(uuid, name, description);
-    c.receive(treasury + balance);
-    c.transact(balance);
-    characters.add(c);
-    usedIDs.put(uuid,c);
-    return c;
-  }
-
-  // can update by finding an actor or faction and preparing the appropriate updates to it.
 
   /**
-   * After consolidb
-   * @param faction
-   * @param subordinates
+   * Loads the JSON from a given filepath filled with factions and characters.
+   * @param filePath the filepath containing our data.
+   * @throws IOException if we cannot either create a new file despite one not being found.
    */
-  private static void populateSubordinates(UUID faction, JSONArray subordinates) {
-    IFaction fac = (IFaction) findActor(faction);
-    for (int i = 0; i < subordinates.length(); i++) {
-      JSONObject index = subordinates.getJSONObject(i); // {"UUID":"XXXX", "Autonomy":"H"}
-      UUID sub = UUID.fromString(index.getString("UUID"));
-      Autonomy auto;
-      switch(index.getString("Autonomy")) {
-        case("INO"):
-          auto = Autonomy.IN_NAME_ONLY;
-        case("VH"):
-          auto = Autonomy.VERY_HIGH_AUTONOMY;
-          break;
-        case("H"):
-          auto = Autonomy.HIGH_AUTONOMY;
-          break;
-        case("M"):
-          auto = Autonomy.MEDIUM_AUTONOMY;
-          break;
-        case("L"):
-          auto = Autonomy.LOW_AUTONOMY;
-          break;
-        case("VL"):
-          auto = Autonomy.VERY_LOW_AUTONOMY;
-          break;
-        case("C"):
-          auto = Autonomy.CONTROLLING;
-          break;
-        default:
-          auto = Autonomy.COMPLETE_CONTROL;
-          break;
-        }
-      usedIDs.get(sub).swearFealty(fac, auto);
+  public static void loadFromFile(String filePath) throws IOException {
+    factionList = new ArrayList<>();
+    charactersList = new ArrayList<>();
+    String contents;
+    File file = new File(filePath);
+
+    try {
+      contents = Files.readString(Paths.get(filePath));
+      System.out.println("Contents: " + contents);
+      if (contents.contains("{")) {storageJSON = new JSONObject(contents);}
+      else { storageJSON = new JSONObject(); }
+    }
+
+    catch (FileNotFoundException e) {
+      if (!file.createNewFile()) { throw new IOException("Cannot create new file!"); }
+      storageJSON = new JSONObject();
+    }
+
+    build();
+
+  }
+
+  private static void build() {
+    JSONArray factionArray = storageJSON.getJSONArray("Factions");
+
+    // "Factions" : [{"UUID": "","Name" : "",..."Balance":XXX,
+    //     "Subordinates" : ["UUID1", "UUID2", "UUID3"]}, {Faction2}]
+
+    for (int i = 0; i < factionArray.length(); i++) {
+      JSONObject obj = factionArray.getJSONObject(i); // faction object.
+      UUID uuid = UUID.fromString(obj.getString("UUID"));
+      String name = obj.getString("Name"), desc = obj.getString("Description");
+      double balance = obj.getDouble("Balance");
+      createFaction(uuid,name,desc,balance);
+    }
+
+
+    JSONArray characterArray = storageJSON.getJSONArray("Characters");
+    for (int i = 0; i < characterArray.length(); i++) {
+      JSONObject obj = characterArray.getJSONObject(i); // faction object.
+      UUID uuid = UUID.fromString(obj.getString("UUID"));
+      String name = obj.getString("Name"), desc = obj.getString("Description");
+      double balance = obj.getDouble("Balance");
+      double pocket = obj.getDouble("Pocket");
+      createFaction(uuid,name,desc,balance);
     }
   }
 
-  public static IFaction findFaction(UUID uuid) {
-    IActor a = findActor(uuid);
-    if (a instanceof Faction) { return (IFaction) a; }
-    return null;
-  }
+  public static void saveToFile() {
 
-  public static ICharacter findCharacter(UUID uuid) {
-    IActor a = findActor(uuid);
-    if (a instanceof Character) { return (ICharacter) a; }
-    return null;
-  }
-
-  public static boolean deleteCharacter(UUID character) {
-    return characters.remove(deleteActor(character));
-  }
-
-  public static boolean deleteFaction(UUID faction) {
-    IFaction f =(IFaction) deleteActor(faction);
-    return factionList.remove(f);
-  }
-
-  private static IActor findActor(UUID uuid) {
-    return usedIDs.get(uuid);
-  }
-
-  private static IActor deleteActor(UUID uuid) {
-    return usedIDs.remove(uuid);
   }
 
 
+  /**
+   * Creates a faction to add to our list of existing factions. Loaded from JSON.
+   * @param uuid the Unique ID of the faction.
+   * @param name name of the faction.
+   * @param desc description for the faction.
+   * @param balance balance of the faction's treasury.
+   * @return true if it was created, false if a faction already exists with its UUID.
+   * @throws IllegalArgumentException if a negative balance is input.
+   */
+  public static boolean createFaction(UUID uuid, String name, String desc, double balance)
+      throws IllegalArgumentException {
+
+    if (balance < 0) { throw new IllegalArgumentException("No Negative Balance!"); }
+
+    if (getFaction(uuid) == null) {
+      IFaction faction = new Faction(uuid, name, desc);
+      faction.receive(balance);
+      factionList.add(faction);
+      return true;
+    } return false;
+  }
 
 
+  /**
+   * Creates a character to add to our list of existing characters. Loaded from JSON.
+   * @param uuid the Unique ID of the character
+   * @param name name of the character
+   * @param desc description for the character.
+   * @param balance balance of the characters off-person account.
+   * @param pocket the on-person account value of the person.
+   * @return true if it was created, false if a faction already exists with its UUID.
+   * @throws IllegalArgumentException if a negative balance or pocket is input.
+   */
+  public static boolean createCharacter(UUID uuid, String name, String desc, int balance, int pocket)
+      throws IllegalArgumentException {
 
+    if (pocket < 0 || balance < 0) { throw new IllegalArgumentException("No Negative Balance!"); }
+
+    if (getCharacter(uuid) == null) {
+      ICharacter character = new Character(uuid, name, desc);
+      character.addToPocket(pocket);
+      character.receive(balance);
+      charactersList.add(character);
+      return true;
+    } return false;
+  }
+
+  public static boolean deleteFaction(UUID uuid) throws IllegalArgumentException {
+    IFaction faction = getFaction(uuid);
+    if (faction == null) { return false; }
+    factionList.remove(faction);
+    faction.disband();
+    return true;
+  }
+
+  public static boolean deleteCharacter(UUID uuid) throws IllegalArgumentException {
+    ICharacter character = getCharacter(uuid);
+    if (character == null) { return false; }
+    charactersList.remove(character);
+    character.swearFealty(null);
+    return true;
+  }
+
+
+  public static IFaction getFaction(UUID uuid) throws IllegalArgumentException {
+    if (uuid == null) { throw new IllegalArgumentException("Invalid UUID"); }
+
+    for (IFaction fac : factionList) {
+      if (fac.getID().equals(uuid)) { return fac; }
+    } return null;
+  }
+
+  public static ICharacter getCharacter(UUID uuid) throws IllegalArgumentException {
+    if (uuid == null) { throw new IllegalArgumentException("Invalid UUID"); }
+
+    for (ICharacter character : charactersList) {
+      if (character.getID().equals(uuid)) { return character; }
+    } return null;
+  }
 }

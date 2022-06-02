@@ -15,7 +15,7 @@ public abstract class AbstractActor implements IActor {
     this.name = name;
     this.desc = desc;
     this.bankBalance = 0;
-    this.id = UUID.randomUUID() ;
+    this.id = uuid ;
   }
 
   @Override
@@ -97,5 +97,13 @@ public abstract class AbstractActor implements IActor {
   public boolean isPeer(IActor actor) {
     return (actor.isDirectLesser(this.lord));
   }
+
+  @Override
+  public UUID getID() { return this.id; }
+  @Override
+  public String getName() { return this.name; };
+  @Override
+  public String getDesc() {return this.desc; }
+
 
 }
